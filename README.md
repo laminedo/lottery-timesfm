@@ -1,3 +1,13 @@
+---
+title: Lottery TimesFM
+emoji: 🎱
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Lottery × TimesFM
 
 Live demo (browser-only, smoothing model, no TimesFM): https://laminedo.github.io/lottery-timesfm/
