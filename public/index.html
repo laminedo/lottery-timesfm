@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Powerball TimesFM</title>
+<title>Lottery TimesFM</title>
 <style>
 :root{--bg:#f6f7f9;--fg:#1c2330;--card:#fff;--mut:#667085;--acc:#3b5bdb;--bd:#e3e6ec}
 @media(prefers-color-scheme:dark){:root{--bg:#12151c;--fg:#e8ebf2;--card:#1b2030;--mut:#9aa3b5;--acc:#7c93ff;--bd:#2a3145}}
@@ -23,17 +23,18 @@ button.sec{background:transparent;color:var(--acc);border:1px solid var(--acc)}
 .tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}.ball.b{background:#d6336c}
 #err{color:#d33}
 </style></head><body><main>
-<h1>Powerball × TimesFM</h1>
-<p style="color:var(--mut);margin:0">Forecasts the next Powerball line from every official draw since 2015, using Google's TimesFM model. <span class="pill" id="backend">…</span></p>
+<h1>Lottery × TimesFM</h1>
+<p style="color:var(--mut);margin:0">Forecasts the next line for each game from its official past draws, using Google's TimesFM model. <span class="pill" id="backend">…</span></p>
 <div class="card warn"><b>Be realistic.</b> Lottery draws are independent and random. No model can predict them; the backtest below shows how picks compare with chance. For entertainment only.</div>
+<div class="tabs" id="tabs"></div>
 <div class="card">
-<div id="rules" style="color:var(--mut);font-size:14px">Powerball: 5 numbers from 1–69, plus the Powerball from 1–26</div>
+<div id="rules" style="color:var(--mut);font-size:14px"></div>
 <p id="status" style="margin:8px 0">Loading official draw history…</p>
 <div class="row" style="align-items:center">
 <button id="go">Forecast again</button><button class="sec" id="hist">Refresh official history</button>
 <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="bt" style="width:auto"> Also run backtest (slow)</label></div>
 <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--mut);font-size:14px">View or edit the draw history</summary>
-<label style="margin-top:8px">One draw per line, oldest first: 5 numbers then the Powerball</label>
+<label style="margin-top:8px" id="fmt"></label>
 <textarea id="draws"></textarea></details>
 <p id="err"></p></div>
 <div id="out" hidden>
@@ -43,52 +44,55 @@ button.sec{background:transparent;color:var(--acc);border:1px solid var(--acc)}
 </div>
 <script>
 const $=id=>document.getElementById(id);
-let cur='powerball';
-// ---- Browser-only mode (GitHub Pages): no Python server, so no TimesFM; smoothing runs here. ----
 const WINDOW=20;
-const GAMES={powerball:{name:'Powerball',max:69,pick:5,bonus:26,bonus_name:'Powerball',history:true,src:['d6yy-54nr','2015-10-07',null]}};
+let GAMES={},cur='powerball',server=null,runId=0;
+try{cur=localStorage.getItem('game')||cur}catch(e){}
+// ---- Browser-only mode (GitHub Pages): no Python server, so no TimesFM; smoothing runs here on a saved data snapshot. ----
+const STATIC_GAMES={powerball:{name:'Powerball',max:69,pick:5,bonus:26,bonus_name:'Powerball'},
+megamillions:{name:'Mega Millions',max:70,pick:5,bonus:24,bonus_name:'Mega Ball'},
+'wa-hit5':{name:'WA Hit 5',max:42,pick:5,bonus:0},'wa-lotto':{name:'WA Lotto',max:49,pick:6,bonus:0}};
 function lScores(draws,max){const sc={};for(let n=1;n<=max;n++){let run=0,lvl=0;const hits=draws.map(d=>d.includes(n)?1:0);
   hits.forEach((h,i)=>{run+=h;if(i>=WINDOW)run-=hits[i-WINDOW];const f=run/Math.min(i+1,WINDOW);lvl=i?0.15*f+0.85*lvl:f});sc[n]=lvl}return sc}
 const topOf=(sc,k)=>Object.keys(sc).map(Number).sort((a,b)=>sc[b]-sc[a]).slice(0,k);
-function lSample(max,k){const s=new Set;while(s.size<k)s.add(1+Math.floor(Math.random()*max));return[...s].sort((a,b)=>a-b)}
+function lSample(max,k){const s=new Set;while(s.size<k)s.add(1+Math.floor(Math.random()*max));return[...s]}
 function lForecast(req){const g=GAMES[req.game],need=g.pick+(g.bonus?1:0),mains=[],bon=[];
   for(const line of req.draws.split('\n')){const n=(line.match(/\d+/g)||[]).map(Number);if(n.length<need)continue;
     const m=n.slice(0,g.pick);if(!m.every(x=>x>=1&&x<=g.max))continue;
     if(g.bonus){if(n[g.pick]<1||n[g.pick]>g.bonus)continue;bon.push([n[g.pick]])}mains.push(m)}
-  if(mains.length<WINDOW+10)return{error:`Need at least ${WINDOW+10} valid draws, got ${mains.length}. Each line needs ${g.pick} numbers`+(g.bonus?' plus the bonus ball.':'.')};
+  if(mains.length<WINDOW+10)return{error:`Need at least ${WINDOW+10} valid draws, got ${mains.length}.`};
   const sc=lScores(mains,g.max),res={numbers:topOf(sc,g.pick).sort((a,b)=>a-b),scores:sc,backtest:null};
   if(g.bonus){const b=lScores(bon,g.bonus);res.bonus={name:g.bonus_name,number:topOf(b,1)[0],scores:b}}
-  if(req.backtest){const steps=Math.min(30,mains.length-WINDOW-5);let mh=0,rh=0;
-    if(steps>=5){for(let i=mains.length-steps;i<mains.length;i++){const t=topOf(lScores(mains.slice(0,i),g.max),g.pick),r=lSample(g.max,g.pick);
+  const steps=Math.min(30,mains.length-WINDOW-5);
+  if(req.backtest&&steps>=5){let mh=0,rh=0;for(let i=mains.length-steps;i<mains.length;i++){const t=topOf(lScores(mains.slice(0,i),g.max),g.pick),r=lSample(g.max,g.pick);
       mh+=t.filter(x=>mains[i].includes(x)).length;rh+=r.filter(x=>mains[i].includes(x)).length}
-    res.backtest={steps,model_avg:mh/steps,random_avg:rh/steps,expected_by_chance:g.pick*g.pick/g.max}}}
+    res.backtest={steps,model_avg:mh/steps,random_avg:rh/steps,expected_by_chance:g.pick*g.pick/g.max}}
   return res}
-async function lApi(url,opt){
-  if(url==='/api/games')return GAMES;
-  if(url.startsWith('/api/sample/')){const g=GAMES[url.split('/').pop()];return{lines:Array.from({length:200},()=>lSample(g.max,g.pick).join(' ')+(g.bonus?' '+(1+Math.floor(Math.random()*g.bonus)):''))}}
-  if(url.startsWith('/api/history/')){const[res,since,ball]=GAMES[url.split('/').pop()].src;
-    const rows=await fetch(`https://data.ny.gov/resource/${res}.json?$limit=5000&$order=draw_date&$where=draw_date>='${since}'`).then(r=>r.json());
-    return{lines:rows.map(r=>r.winning_numbers+(ball?' '+r[ball]:''))}}
-  if(url==='/api/forecast')return lForecast(JSON.parse(opt.body));
-}
-let server=null; // resolved once: true if the Python server (and maybe TimesFM) is reachable
 const ready=fetch('api/status').then(r=>r.ok?r.json():Promise.reject()).then(s=>{server=true;$('backend').textContent=s.backend==='timesfm'?'TimesFM active':'fallback: smoothing (TimesFM not installed)'})
   .catch(()=>{server=false;$('backend').textContent='browser-only demo: smoothing, not TimesFM'});
-async function api(url,opt){await ready;return server?fetch(url.slice(1),opt).then(r=>r.json()):lApi(url,opt)}
-cur='powerball';
-async function loadHistory(){
-  $('err').textContent='';$('status').textContent='Loading official draw history…';
-  try{const d=await api('/api/history/powerball');if(d.error)throw new Error(d.error);
-    $('draws').value=d.lines.join('\n');return true}
-  catch(e){$('status').textContent='';$('err').textContent='Could not load the official draw history. Check your connection and press Refresh.';return false}
+const getJson=(u,o)=>fetch(u,o).then(r=>r.json());
+async function getGames(){await ready;return server?getJson('api/games'):STATIC_GAMES}
+async function getHistory(k,fresh){await ready;
+  if(server)return getJson('api/history/'+k);
+  const d=await getJson('data/'+k+'.json'+(fresh?'?t='+Date.now():''));d.note=` Saved results as of ${d.updated}.`;return d}
+async function getForecast(req){await ready;return server?getJson('api/forecast',{method:'POST',body:JSON.stringify(req)}):lForecast(req)}
+
+const hist={}; // game -> draw text, kept while the page is open
+async function loadHistory(fresh){
+  const k=cur;$('err').textContent='';
+  if(hist[k]&&!fresh){$('draws').value=hist[k].text;return true}
+  $('status').textContent='Loading official draw history…';$('out').hidden=true;
+  try{const d=await getHistory(k,fresh);if(d.error)throw new Error(d.error);
+    hist[k]={text:d.lines.join('\n'),note:d.note||''};if(k===cur)$('draws').value=hist[k].text;return k===cur}
+  catch(e){if(k===cur){$('status').textContent='';$('err').textContent='Could not load the official draw history. Check your connection and press Refresh.'}return false}
 }
-$('hist').onclick=async()=>{if(await loadHistory())$('go').onclick()};
-$('go').onclick=async()=>{
+async function run(){
+  const k=cur,id=++runId,text=$('draws').value.trim(),lines=text.split('\n');
   $('err').textContent='';$('go').disabled=true;$('go').textContent='Forecasting…';
-  const n=$('draws').value.trim().split('\n').length,last=$('draws').value.trim().split('\n').pop();
-  $('status').textContent=`Forecasting from ${n} draws. Most recent draw: ${last}.`;
+  $('status').textContent=`Forecasting from ${lines.length} draws. Most recent draw: ${lines[lines.length-1]}.`+(hist[k]&&hist[k].text===text?hist[k].note:'');
   try{
-    const d=await api('/api/forecast',{method:'POST',body:JSON.stringify({game:cur,draws:$('draws').value,backtest:$('bt').checked})});if(d.error)throw new Error(d.error);
+    const d=await getForecast({game:k,draws:text,backtest:$('bt').checked});
+    if(id!==runId)return; // the user switched games while this was running
+    if(d.error)throw new Error(d.error);
     $('out').hidden=false;
     $('balls').innerHTML=d.numbers.map(n=>`<div class="ball">${n}</div>`).join('')+(d.bonus?`<div class="ball b" title="${d.bonus.name}">${d.bonus.number}</div>`:'');
     $('bonuswrap').innerHTML=d.bonus?`<span style="color:var(--mut);font-size:13px">Red = ${d.bonus.name}</span>`:'';
@@ -96,8 +100,20 @@ $('go').onclick=async()=>{
     $('bars').innerHTML=sc.map(([n,v])=>`<div class="bar"><div><i style="height:${v/mx*100}%;${top.has(+n)?'opacity:1':''}"></i></div>${n}</div>`).join('');
     const b=d.backtest;$('btcard').hidden=!b;
     if(b)$('bttxt').innerHTML=`Over the last ${b.steps} draws (main numbers), average matches per draw:<br><b>Model picks: ${b.model_avg.toFixed(2)}</b> · Random picks: ${b.random_avg.toFixed(2)} · Expected by chance: ${b.expected_by_chance.toFixed(2)}<br><span style="color:var(--mut)">If the model isn't clearly above chance across many runs, it has no edge — which is what true randomness predicts.</span>`;
-  }catch(e){$('err').textContent=e.message}
-  $('go').disabled=false;$('go').textContent='Forecast again';
-};
-loadHistory().then(ok=>ok&&$('go').onclick());
+  }catch(e){if(id===runId){$('out').hidden=true;$('err').textContent=e.message}}
+  if(id===runId){$('go').disabled=false;$('go').textContent='Forecast again'}
+}
+async function show(){
+  const g=GAMES[cur];try{localStorage.setItem('game',cur)}catch(e){}
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===cur));
+  $('rules').textContent=`${g.name}: ${g.pick} numbers from 1–${g.max}`+(g.bonus?`, plus the ${g.bonus_name} from 1–${g.bonus}`:'');
+  $('fmt').textContent=`One draw per line, oldest first: ${g.pick} numbers`+(g.bonus?` then the ${g.bonus_name}`:'');
+  $('out').hidden=true;
+  if(await loadHistory(false))run();
+}
+getGames().then(g=>{GAMES=g;if(!g[cur])cur='powerball';
+  $('tabs').innerHTML=Object.entries(g).map(([k,v])=>`<button data-k="${k}">${v.name}</button>`).join('');
+  $('tabs').onclick=e=>{if(e.target.dataset.k){cur=e.target.dataset.k;show()}};show()});
+$('go').onclick=run;
+$('hist').onclick=async()=>{if(await loadHistory(true))run()};
 </script></main></body></html>

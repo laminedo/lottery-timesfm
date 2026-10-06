@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Lottery x TimesFM web app. Standard library only; TimesFM is optional."""
-import argparse, json, mimetypes, random
+import argparse, json, mimetypes, re, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -9,10 +9,16 @@ import forecast
 PUBLIC = Path(__file__).parent / "public"
 
 
-# Current formats. `src`: public open-data feed (data.ny.gov) + first date of the current format.
+# Current formats. `src`: where official results come from, limited to draws in the current format.
+#   ("ny", dataset, first_date, bonus_field)  -> data.ny.gov open data
+#   ("wa", gamename, first_year)              -> walottery.com past-drawings pages
 GAMES = {
     "powerball": {"name": "Powerball", "max": 69, "pick": 5, "bonus": 26, "bonus_name": "Powerball",
-                  "src": ("d6yy-54nr", "2015-10-07", None)},
+                  "src": ("ny", "d6yy-54nr", "2015-10-07", None)},
+    "megamillions": {"name": "Mega Millions", "max": 70, "pick": 5, "bonus": 24, "bonus_name": "Mega Ball",
+                     "src": ("ny", "5xaw-6ayf", "2025-04-08", "mega_ball")},
+    "wa-hit5": {"name": "WA Hit 5", "max": 42, "pick": 5, "bonus": 0, "src": ("wa", "hit5", 2022)},
+    "wa-lotto": {"name": "WA Lotto", "max": 49, "pick": 6, "bonus": 0, "src": ("wa", "lotto", 2020)},
 }
 
 
@@ -35,13 +41,56 @@ def parse_draws(text, g):
     return mains, bonuses
 
 
-def fetch_history(key):
+def _get(url):
     import urllib.request
-    res, since, ball = GAMES[key]["src"]
-    url = f"https://data.ny.gov/resource/{res}.json?$limit=5000&$order=draw_date&$where=draw_date>='{since}'"
-    with urllib.request.urlopen(url, timeout=20) as r:
-        rows = json.load(r)
-    return [(row["winning_numbers"] + (" " + row[ball] if ball else "")).replace("  ", " ") for row in rows]
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode("utf-8", "ignore")
+
+
+def _wa_year(game, year):
+    """One year of results from walottery.com, newest first, as lists of ints."""
+    page = _get(f"https://www.walottery.com/WinningNumbers/PastDrawings.aspx?gamename={game}&unittype=year&unitcount={year}")
+    out = []
+    for t in re.finditer(r'<table class="table-viewport-small">(.*?)</table>', page, re.S):
+        balls = re.search(r'game-balls">(.*?)</ul>', t.group(1), re.S)
+        if balls:
+            out.append(re.findall(r"<li[^>]*>\s*(\d+)\s*</li>", balls.group(1)))
+    return out
+
+
+_cache = {}  # game -> (fetched_at, lines)
+
+
+def fetch_history(key):
+    """Official draws, oldest first, one 'n n n ...' line per draw. Cached for an hour."""
+    if key in _cache and time.time() - _cache[key][0] < 3600:
+        return _cache[key][1]
+    src = GAMES[key]["src"]
+    if src[0] == "ny":
+        _, res, since, ball = src
+        rows = json.loads(_get(f"https://data.ny.gov/resource/{res}.json?$limit=5000&$order=draw_date"
+                               f"&$where=draw_date%3E=%27{since}%27"))
+        lines = [" ".join((row["winning_numbers"] + (" " + row[ball] if ball else "")).split()) for row in rows]
+    else:
+        _, game, first = src
+        lines = []
+        for y in range(first, time.gmtime().tm_year + 1):
+            lines += [" ".join(d) for d in reversed(_wa_year(game, y))]
+    if not lines:
+        raise ValueError("no draws found")
+    _cache[key] = (time.time(), lines)
+    return lines
+
+
+def snapshot():
+    """Save draw history to public/data/ so the browser-only (GitHub Pages) version has it."""
+    out = PUBLIC / "data"
+    out.mkdir(exist_ok=True)
+    for key in GAMES:
+        lines = fetch_history(key)
+        (out / f"{key}.json").write_text(json.dumps({"updated": time.strftime("%Y-%m-%d"), "lines": lines}))
+        print(key, len(lines), "draws")
 
 
 class H(BaseHTTPRequestHandler):
@@ -67,12 +116,6 @@ class H(BaseHTTPRequestHandler):
                 return self._json({"lines": fetch_history(key)})
             except Exception as e:
                 return self._json({"error": f"Could not fetch history: {e}"}, 502)
-        if self.path.startswith("/api/sample/"):
-            g = GAMES.get(self.path.split("/")[-1].split("?")[0])
-            if not g:
-                return self.send_error(404)
-            rows = [sorted(r.sample(range(1, g["max"] + 1), g["pick"])) for r in [random.Random()] for _ in range(200)]
-            return self._json({"lines": [" ".join(map(str, d)) + (f" {random.randint(1, g['bonus'])}" if g["bonus"] else "") for d in rows]})
         p = "index.html" if self.path in ("/", "") else self.path.lstrip("/").split("?")[0]
         f = (PUBLIC / p).resolve()
         if PUBLIC.resolve() not in f.parents or not f.is_file():
@@ -114,7 +157,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8044)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("command", nargs="?", choices=["snapshot"])
     a = ap.parse_args()
+    if a.command == "snapshot":
+        snapshot()
+        raise SystemExit
     print(f"Forecast backend: {forecast.backend()}")
     print(f"http://{a.host}:{a.port}")
     ThreadingHTTPServer((a.host, a.port), H).serve_forever()
