@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lottery TimesFM</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1c2330;--card:#fff;--mut:#667085;--acc:#3b5bdb;--bd:#e3e6ec}
+@media(prefers-color-scheme:dark){:root{--bg:#12151c;--fg:#e8ebf2;--card:#1b2030;--mut:#9aa3b5;--acc:#7c93ff;--bd:#2a3145}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px}h1{margin:0 0 4px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin:16px 0}
+.warn{border-color:#e0a030;background:color-mix(in srgb,#e0a030 12%,var(--card))}
+label{display:block;font-size:14px;color:var(--mut)}input,textarea{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit}
+textarea{height:140px;font-family:ui-monospace,monospace;font-size:13px}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1;min-width:120px}
+button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 16px;font:inherit;cursor:pointer}
+button.sec{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.balls{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.ball{width:48px;height:48px;border-radius:50%;background:var(--acc);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px}
+.bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px}
+.bar{text-align:center;font-size:12px;color:var(--mut)}.bar i{display:block;background:var(--acc);border-radius:3px 3px 0 0;margin-top:2px;opacity:.8}
+.bar div{height:70px;display:flex;align-items:flex-end}.bar i{width:100%}
+.pill{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--bd);color:var(--mut)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 0}.tabs button{background:var(--card);color:var(--fg);border:1px solid var(--bd)}
+.tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}.ball.b{background:#d6336c}
+#err{color:#d33}
+</style></head><body><main>
+<h1>Lottery × TimesFM</h1>
+<p style="color:var(--mut);margin:0">Forecast number frequencies from draw history with Google's time-series model. <span class="pill" id="backend">…</span></p>
+<div class="card warn"><b>Be realistic.</b> Lottery draws are independent and random. No model can predict them; the backtest below shows how picks compare with chance. For entertainment only.</div>
+<div class="tabs" id="tabs"></div>
+<div class="card">
+<div id="rules" style="color:var(--mut);font-size:14px"></div>
+<label style="margin-top:12px">Past draws (one per line, oldest first)<span id="fmt"></span></label>
+<textarea id="draws" placeholder="3 14 22 31 40 47"></textarea>
+<div class="row" style="margin-top:12px;align-items:center">
+<button id="go">Forecast</button><button class="sec" id="hist">Load official history</button><button class="sec" id="sample">Load random sample</button>
+<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="bt" checked style="width:auto"> Run backtest</label></div>
+<p id="err"></p></div>
+<div id="out" hidden>
+<div class="card"><h3 style="margin-top:0">Suggested numbers</h3><div class="balls" id="balls"></div><div id="bonuswrap"></div></div>
+<div class="card"><h3 style="margin-top:0">Forecast score per number</h3><div class="bars" id="bars"></div></div>
+<div class="card" id="btcard"><h3 style="margin-top:0">Backtest vs chance</h3><div id="bttxt"></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let games={},cur=localStorage.getItem('game')||'powerball';
+fetch('/api/status').then(r=>r.json()).then(s=>$('backend').textContent=s.backend==='timesfm'?'TimesFM active':'fallback: smoothing (TimesFM not installed)');
+const key=()=>'draws:'+cur;
+function show(){
+  const g=games[cur];localStorage.setItem('game',cur);
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===cur));
+  $('rules').textContent=`${g.name}: pick ${g.pick} from 1–${g.max}`+(g.bonus?` + ${g.bonus_name} from 1–${g.bonus}`:'');
+  $('fmt').textContent=g.bonus?` — ${g.pick} numbers then the ${g.bonus_name}`:'';
+  $('draws').value=localStorage.getItem(key())||'';$('hist').hidden=!g.history;
+  $('out').hidden=true;$('err').textContent='';
+}
+fetch('/api/games').then(r=>r.json()).then(g=>{games=g;
+  if(!g[cur])cur='powerball';
+  $('tabs').innerHTML=Object.entries(g).map(([k,v])=>`<button data-k="${k}">${v.name}</button>`).join('');
+  $('tabs').onclick=e=>{if(e.target.dataset.k){cur=e.target.dataset.k;show()}};show()});
+$('draws').oninput=()=>localStorage.setItem(key(),$('draws').value);
+async function load(url,btn){
+  $('err').textContent='';btn.disabled=true;
+  try{const d=await fetch(url).then(r=>r.json());if(d.error)throw new Error(d.error);
+    $('draws').value=d.lines.join('\n');$('draws').oninput()}catch(e){$('err').textContent=e.message}
+  btn.disabled=false;
+}
+$('sample').onclick=()=>load('/api/sample/'+cur,$('sample'));
+$('hist').onclick=()=>load('/api/history/'+cur,$('hist'));
+$('go').onclick=async()=>{
+  $('err').textContent='';$('go').disabled=true;$('go').textContent='Forecasting…';
+  try{
+    const r=await fetch('/api/forecast',{method:'POST',body:JSON.stringify({game:cur,draws:$('draws').value,backtest:$('bt').checked})});
+    const d=await r.json();if(d.error)throw new Error(d.error);
+    $('out').hidden=false;
+    $('balls').innerHTML=d.numbers.map(n=>`<div class="ball">${n}</div>`).join('')+(d.bonus?`<div class="ball b" title="${d.bonus.name}">${d.bonus.number}</div>`:'');
+    $('bonuswrap').innerHTML=d.bonus?`<span style="color:var(--mut);font-size:13px">Red = ${d.bonus.name}</span>`:'';
+    const sc=Object.entries(d.scores),mx=Math.max(...sc.map(x=>x[1]))||1,top=new Set(d.numbers);
+    $('bars').innerHTML=sc.map(([n,v])=>`<div class="bar"><div><i style="height:${v/mx*100}%;${top.has(+n)?'opacity:1':''}"></i></div>${n}</div>`).join('');
+    const b=d.backtest;$('btcard').hidden=!b;
+    if(b)$('bttxt').innerHTML=`Over the last ${b.steps} draws (main numbers), average matches per draw:<br><b>Model picks: ${b.model_avg.toFixed(2)}</b> · Random picks: ${b.random_avg.toFixed(2)} · Expected by chance: ${b.expected_by_chance.toFixed(2)}<br><span style="color:var(--mut)">If the model isn't clearly above chance across many runs, it has no edge — which is what true randomness predicts.</span>`;
+  }catch(e){$('err').textContent=e.message}
+  $('go').disabled=false;$('go').textContent='Forecast';
+};
+</script></main></body></html>
