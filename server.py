@@ -13,10 +13,6 @@ PUBLIC = Path(__file__).parent / "public"
 GAMES = {
     "powerball": {"name": "Powerball", "max": 69, "pick": 5, "bonus": 26, "bonus_name": "Powerball",
                   "src": ("d6yy-54nr", "2015-10-07", None)},
-    "megamillions": {"name": "Mega Millions", "max": 70, "pick": 5, "bonus": 24, "bonus_name": "Mega Ball",
-                     "src": ("5xaw-6ayf", "2025-04-08", "mega_ball")},
-    "wa-hit5": {"name": "WA Hit 5", "max": 35, "pick": 5, "bonus": 0},
-    "wa-lotto": {"name": "WA Lotto", "max": 49, "pick": 6, "bonus": 0},
 }
 
 
