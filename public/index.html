@@ -43,7 +43,39 @@ button.sec{background:transparent;color:var(--acc);border:1px solid var(--acc)}
 <script>
 const $=id=>document.getElementById(id);
 let games={},cur=localStorage.getItem('game')||'powerball';
-fetch('/api/status').then(r=>r.json()).then(s=>$('backend').textContent=s.backend==='timesfm'?'TimesFM active':'fallback: smoothing (TimesFM not installed)');
+// ---- Browser-only mode (GitHub Pages): no Python server, so no TimesFM; smoothing runs here. ----
+const WINDOW=20;
+const GAMES={powerball:{name:'Powerball',max:69,pick:5,bonus:26,bonus_name:'Powerball',history:true,src:['d6yy-54nr','2015-10-07',null]},
+megamillions:{name:'Mega Millions',max:70,pick:5,bonus:24,bonus_name:'Mega Ball',history:true,src:['5xaw-6ayf','2025-04-08','mega_ball']},
+'wa-hit5':{name:'WA Hit 5',max:35,pick:5,bonus:0,history:false},'wa-lotto':{name:'WA Lotto',max:49,pick:6,bonus:0,history:false}};
+function lScores(draws,max){const sc={};for(let n=1;n<=max;n++){let run=0,lvl=0;const hits=draws.map(d=>d.includes(n)?1:0);
+  hits.forEach((h,i)=>{run+=h;if(i>=WINDOW)run-=hits[i-WINDOW];const f=run/Math.min(i+1,WINDOW);lvl=i?0.15*f+0.85*lvl:f});sc[n]=lvl}return sc}
+const topOf=(sc,k)=>Object.keys(sc).map(Number).sort((a,b)=>sc[b]-sc[a]).slice(0,k);
+function lSample(max,k){const s=new Set;while(s.size<k)s.add(1+Math.floor(Math.random()*max));return[...s].sort((a,b)=>a-b)}
+function lForecast(req){const g=GAMES[req.game],need=g.pick+(g.bonus?1:0),mains=[],bon=[];
+  for(const line of req.draws.split('\n')){const n=(line.match(/\d+/g)||[]).map(Number);if(n.length<need)continue;
+    const m=n.slice(0,g.pick);if(!m.every(x=>x>=1&&x<=g.max))continue;
+    if(g.bonus){if(n[g.pick]<1||n[g.pick]>g.bonus)continue;bon.push([n[g.pick]])}mains.push(m)}
+  if(mains.length<WINDOW+10)return{error:`Need at least ${WINDOW+10} valid draws, got ${mains.length}. Each line needs ${g.pick} numbers`+(g.bonus?' plus the bonus ball.':'.')};
+  const sc=lScores(mains,g.max),res={numbers:topOf(sc,g.pick).sort((a,b)=>a-b),scores:sc,backtest:null};
+  if(g.bonus){const b=lScores(bon,g.bonus);res.bonus={name:g.bonus_name,number:topOf(b,1)[0],scores:b}}
+  if(req.backtest){const steps=Math.min(30,mains.length-WINDOW-5);let mh=0,rh=0;
+    if(steps>=5){for(let i=mains.length-steps;i<mains.length;i++){const t=topOf(lScores(mains.slice(0,i),g.max),g.pick),r=lSample(g.max,g.pick);
+      mh+=t.filter(x=>mains[i].includes(x)).length;rh+=r.filter(x=>mains[i].includes(x)).length}
+    res.backtest={steps,model_avg:mh/steps,random_avg:rh/steps,expected_by_chance:g.pick*g.pick/g.max}}}
+  return res}
+async function lApi(url,opt){
+  if(url==='/api/games')return GAMES;
+  if(url.startsWith('/api/sample/')){const g=GAMES[url.split('/').pop()];return{lines:Array.from({length:200},()=>lSample(g.max,g.pick).join(' ')+(g.bonus?' '+(1+Math.floor(Math.random()*g.bonus)):''))}}
+  if(url.startsWith('/api/history/')){const[res,since,ball]=GAMES[url.split('/').pop()].src;
+    const rows=await fetch(`https://data.ny.gov/resource/${res}.json?$limit=5000&$order=draw_date&$where=draw_date>='${since}'`).then(r=>r.json());
+    return{lines:rows.map(r=>r.winning_numbers+(ball?' '+r[ball]:''))}}
+  if(url==='/api/forecast')return lForecast(JSON.parse(opt.body));
+}
+let server=null; // resolved once: true if the Python server (and maybe TimesFM) is reachable
+const ready=fetch('api/status').then(r=>r.ok?r.json():Promise.reject()).then(s=>{server=true;$('backend').textContent=s.backend==='timesfm'?'TimesFM active':'fallback: smoothing (TimesFM not installed)'})
+  .catch(()=>{server=false;$('backend').textContent='browser-only demo: smoothing, not TimesFM'});
+async function api(url,opt){await ready;return server?fetch(url.slice(1),opt).then(r=>r.json()):lApi(url,opt)}
 const key=()=>'draws:'+cur;
 function show(){
   const g=games[cur];localStorage.setItem('game',cur);
@@ -53,14 +85,14 @@ function show(){
   $('draws').value=localStorage.getItem(key())||'';$('hist').hidden=!g.history;
   $('out').hidden=true;$('err').textContent='';
 }
-fetch('/api/games').then(r=>r.json()).then(g=>{games=g;
+api('/api/games').then(g=>{games=g;
   if(!g[cur])cur='powerball';
   $('tabs').innerHTML=Object.entries(g).map(([k,v])=>`<button data-k="${k}">${v.name}</button>`).join('');
   $('tabs').onclick=e=>{if(e.target.dataset.k){cur=e.target.dataset.k;show()}};show()});
 $('draws').oninput=()=>localStorage.setItem(key(),$('draws').value);
 async function load(url,btn){
   $('err').textContent='';btn.disabled=true;
-  try{const d=await fetch(url).then(r=>r.json());if(d.error)throw new Error(d.error);
+  try{const d=await api(url);if(d.error)throw new Error(d.error);
     $('draws').value=d.lines.join('\n');$('draws').oninput()}catch(e){$('err').textContent=e.message}
   btn.disabled=false;
 }
@@ -69,8 +101,7 @@ $('hist').onclick=()=>load('/api/history/'+cur,$('hist'));
 $('go').onclick=async()=>{
   $('err').textContent='';$('go').disabled=true;$('go').textContent='Forecasting…';
   try{
-    const r=await fetch('/api/forecast',{method:'POST',body:JSON.stringify({game:cur,draws:$('draws').value,backtest:$('bt').checked})});
-    const d=await r.json();if(d.error)throw new Error(d.error);
+    const d=await api('/api/forecast',{method:'POST',body:JSON.stringify({game:cur,draws:$('draws').value,backtest:$('bt').checked})});if(d.error)throw new Error(d.error);
     $('out').hidden=false;
     $('balls').innerHTML=d.numbers.map(n=>`<div class="ball">${n}</div>`).join('')+(d.bonus?`<div class="ball b" title="${d.bonus.name}">${d.bonus.number}</div>`:'');
     $('bonuswrap').innerHTML=d.bonus?`<span style="color:var(--mut);font-size:13px">Red = ${d.bonus.name}</span>`:'';

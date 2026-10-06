@@ -1,5 +1,9 @@
 # Lottery × TimesFM
 
+Live demo (browser-only, smoothing model, no TimesFM): https://laminedo.github.io/lottery-timesfm/
+
+Run locally for real TimesFM forecasts:
+
     .venv/bin/python server.py   # http://127.0.0.1:8044 (or python3 server.py for the fallback)
 
 Paste past draws (one per line) or load a random sample; the app forecasts each number's
