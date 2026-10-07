@@ -1,3 +1,21 @@
 .venv/
 __pycache__/
 *.log
+.env
+.env.local
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Full-stack app
+.tools/
+backend/data/pgdata/
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+*.tsbuildinfo
+
+# Static demo: exported snapshot and the assembled GitHub Pages site
+web/public/data/
+.pages-build/
