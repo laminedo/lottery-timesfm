@@ -15,8 +15,8 @@ help:
 	@echo "make refresh   pull new draws from the official sources now"
 	@echo "make snapshot  rebuild backend/data/seed from the official sources"
 	@echo "make warm      precompute model output for the last 100 draws of every game"
-	@echo "make demo      build the read-only demo site into .pages-build/site without publishing"
-	@echo "make publish   export a fresh snapshot, build the demo and publish it to GitHub Pages"
+	@echo "make demo      rebuild the hosted site into .pages-build/site without publishing"
+	@echo "make publish   fetch draws, forecast, build and publish the hosted site to GitHub Pages"
 
 install:
 	cd backend && uv sync --all-extras

@@ -3,6 +3,7 @@
 import { Check, Dices, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useId, useMemo, useState } from "react";
+import { mutate } from "swr";
 
 import { BallRow } from "@/components/ball";
 import { ChartCard } from "@/components/charts/chart-card";
@@ -22,6 +23,7 @@ import {
   type StrategyKey,
   type Weights,
 } from "@/lib/api";
+import { IS_STATIC } from "@/lib/env";
 import { formatDate, formatInt } from "@/lib/format";
 import type { GameKey } from "@/lib/games";
 
@@ -154,6 +156,8 @@ export function ForecastView({ game: key }: { game: GameKey }) {
     try {
       const body = strategy === "custom" ? { lines: count, weights, temperature } : { lines: count, strategy, temperature };
       setResult(await postJson<Generated>(`/api/games/${key}/forecast/generate`, body));
+      // The saved-lines list and the accuracy tracker now have something new to show.
+      mutate((k) => typeof k === "string" && (k.startsWith(`/api/games/${key}/forecasts`) || k === `/api/games/${key}/accuracy`));
     } catch (e) {
       setFailure(e as Error);
     } finally {
@@ -254,11 +258,16 @@ export function ForecastView({ game: key }: { game: GameKey }) {
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Check className="mt-0.5 size-3.5 shrink-0" />
               {result.saved === false ? (
-                <span>Sampled in your browser for the {formatDate(result.target_draw_at.slice(0, 10), false)} draw. This demo does not save lines.</span>
+                <span>
+                  For the {formatDate(result.target_draw_at.slice(0, 10), false)} draw. These lines could not be saved: this browser is
+                  blocking site storage.
+                </span>
               ) : (
                 <span>
-                  Saved for the {formatDate(result.target_draw_at.slice(0, 10), false)} draw and scored against the result afterwards.
-                  See <Link className="underline underline-offset-2" href={`/${key}/history`}>History</Link>. Seed {result.seed}.
+                  Saved {IS_STATIC ? "in this browser " : ""}for the {formatDate(result.target_draw_at.slice(0, 10), false)} draw and
+                  scored against the result afterwards. See{" "}
+                  <Link className="underline underline-offset-2" href={`/${key}/history`}>History</Link>.
+                  {!IS_STATIC && ` Seed ${result.seed}.`}
                 </span>
               )}
             </p>

@@ -1,13 +1,12 @@
 "use client";
 
-import { Archive, CloudOff, Cpu, LineChart } from "lucide-react";
+import { CloudOff, Cpu, LineChart } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApi, type Health } from "@/lib/api";
 import { IS_STATIC } from "@/lib/env";
-import { formatShortDate } from "@/lib/format";
 
 /** Which model is producing the forecasts. Never implies TimesFM is running when it is not. */
 function BackendBadge() {
@@ -15,7 +14,10 @@ function BackendBadge() {
   if (IS_STATIC) {
     return (
       <Badge variant="secondary">
-        <Archive /> Demo snapshot{data?.exported_at ? ` · ${formatShortDate(data.exported_at)}` : ""}
+        <Cpu /> {data?.backend.name === "smoothing" ? "Smoothing" : "TimesFM 2.5"}
+        {data?.exported_at
+          ? ` · updated ${new Date(data.exported_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+          : ""}
       </Badge>
     );
   }

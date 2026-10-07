@@ -6,7 +6,9 @@
   refresh [--full]     pull new draws (or all draws) from the official sources
   warm [--draws N]     precompute model output for the last N draws of every game
   backtest GAME        run a walk-forward backtest and print the summary
-  export-static DIR    write the JSON snapshot the static demo (GitHub Pages) is built from
+  export-static DIR    write the JSON snapshot the hosted site (GitHub Pages) is built from
+  export-state FILE    save computed model output and jackpot estimates for the next run
+  import-state FILE    load them back into a fresh database (a missing file is not an error)
 """
 from __future__ import annotations
 
@@ -38,6 +40,8 @@ def main(argv: list[str] | None = None) -> int:
     bt.add_argument("--samples", type=int, default=20)
     bt.add_argument("--seed", type=int, default=0)
     sub.add_parser("export-static").add_argument("out_dir", type=Path)
+    sub.add_parser("export-state").add_argument("file", type=Path)
+    sub.add_parser("import-state").add_argument("file", type=Path)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -61,13 +65,20 @@ def main(argv: list[str] | None = None) -> int:
             for game in GAMES.values():
                 print(f"{game.key}: {pipeline.seed_game(db, settings.seed_dir, game)} new draws")
         elif args.command == "refresh":
+            # Start from the bundled history, so a fresh database only has to fetch what is newer.
+            pipeline.seed_if_empty(db, settings.seed_dir)
             for game in GAMES.values():
                 print(pipeline.refresh_game(db, game, full=args.full))
             print("jackpot estimates stored:", pipeline.refresh_jackpots(db))
         else:
             pipeline.seed_if_empty(db, settings.seed_dir)
             service = ForecastService(db, make_backend(settings), settings)
-            if args.command == "export-static":
+            if args.command in ("export-state", "import-state"):
+                from . import state
+
+                run = state.export_state if args.command == "export-state" else state.import_state
+                print(f"{args.command} {args.file}: {run(db, service, args.file)}")
+            elif args.command == "export-static":
                 from .export import export_static
 
                 summary = export_static(db, service, args.out_dir)

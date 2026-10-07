@@ -496,7 +496,7 @@ export function BacktestView({ game: key }: { game: GameKey }) {
             Replays the most recent draws one at a time. Before each draw, every strategy forecasts it from earlier draws only, and its
             pick is scored against what was drawn.{" "}
             {IS_STATIC
-              ? "This demo replays forecasts that were computed with the model in advance, so results appear at once."
+              ? "These four sizes are recomputed with the model on GitHub after every draw, so results appear at once."
               : "The first run forecasts each draw with the model (about 1–2 seconds per draw); results are cached, so reruns are instant."}
           </CardDescription>
         </CardHeader>

@@ -63,7 +63,7 @@ export interface Health {
   backend: BackendInfo;
   draws: Record<string, number>;
   last_refresh: string | null;
-  /** Present in the read-only demo: when its snapshot was taken. */
+  /** Present on the hosted site: when its data was last rebuilt. */
   static?: boolean;
   exported_at?: string;
 }
@@ -142,7 +142,7 @@ export interface Generated {
   weights: Weights;
   temperature: number;
   seed: number;
-  /** False in the read-only demo, where lines are sampled in the browser and not stored. */
+  /** False when the lines could not be stored (the hosted site keeps them in the browser, which may refuse). */
   saved?: boolean;
   target_draw_at: string;
   lines: GeneratedLine[];

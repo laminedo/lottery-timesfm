@@ -128,10 +128,10 @@ function snapshot() {
   return { forecast, game };
 }
 
-test("the demo generates lines like the server does, marked as not saved", () => {
+test("the hosted site generates lines like the server does", () => {
   const { forecast, game } = snapshot();
   const out = generateFrom(forecast, game, { lines: 3, strategy: "hot", temperature: 1 }, seeded(5));
-  assert.equal(out.saved, false);
+  assert.equal(out.saved, false); // sampling alone stores nothing; the caller saves to the browser
   assert.equal(out.strategy, "hot");
   assert.deepEqual(out.weights, { timesfm: 0.25, hot: 0.75, cold: 0, uniform: 0 });
   assert.equal(out.jackpot_odds, 292_201_338);

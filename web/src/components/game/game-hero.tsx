@@ -121,7 +121,7 @@ export function GameHero({ game: key }: { game: GameKey }) {
             jackpot
               ? `${jackpot.cash_value_usd ? `Cash value ${formatJackpot(jackpot.cash_value_usd)} · ` : ""}${jackpot.source}`
               : IS_STATIC
-                ? "The demo snapshot has no estimate for this draw."
+                ? "No estimate for this draw yet; it appears with the next update."
                 : "The lottery has not published an estimate we could read."
           }
         >

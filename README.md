@@ -25,31 +25,38 @@ This repository holds two things:
 | Path | What it is |
 | --- | --- |
 | `backend/`, `web/` | The full-stack app described here: FastAPI + PostgreSQL + TimesFM, and a Next.js PWA. |
-| `scripts/publish-pages.sh` | Builds the read-only demo of the web app and publishes it to GitHub Pages. |
+| `scripts/publish-pages.sh`, `.github/workflows/` | Rebuild the hosted site on a schedule: new draws, TimesFM forecasts, static build, publish to GitHub Pages. |
 | `server.py`, `forecast.py`, `public/`, `Dockerfile` | The original single-file prototype (GitHub Pages demo and Hugging Face Space). See [the last section](#original-prototype). |
 
-## Hosted demo
+## Hosted site
 
-A read-only copy runs on GitHub Pages: **https://laminedo.github.io/lottery-timesfm/app/**
+The app runs on GitHub alone: **https://laminedo.github.io/lottery-timesfm/app/**
 
-It is the same web app built as static files. There is no server behind it, so:
+GitHub Pages can only serve files, so nothing is computed when you open the page. Instead a scheduled
+GitHub Actions job ([`.github/workflows/update-site.yml`](.github/workflows/update-site.yml)) does the
+server's work three times a day, after the evening draws:
 
-- forecasts and backtests (over 25, 50, 100 and 200 draws) were computed with TimesFM on a developer
-  machine and are shipped as a JSON snapshot; the page says which day the snapshot is from;
-- candidate lines are sampled in the browser from that snapshot and are not saved or scored;
-- it does not fetch newer draws. The countdown is worked out in the browser from the draw schedule,
-  and a jackpot estimate is hidden once its draw has passed.
+1. fetches new draws and jackpot estimates from the official sources;
+2. runs TimesFM on GitHub's machine for every draw not yet forecast, and recomputes the backtests over
+   the last 25, 50, 100 and 200 draws;
+3. rebuilds the web app as static files with that data and publishes it to the `gh-pages` branch.
 
-To refresh it, run this from a machine with the app set up:
+What that means when you use it:
 
-```bash
-make publish
-```
+- forecasts, heatmaps and backtests are real TimesFM output, at most a few hours behind the latest draw;
+  the page shows when it was last updated;
+- candidate lines are sampled in your browser from the model's distribution, saved in your browser, and
+  scored there once their draw is in;
+- you cannot run a backtest of an arbitrary size or change the model's settings: that needs the full
+  app below.
 
-That exports a new snapshot (`python -m app.cli export-static`), builds the static site
-(`npm run build:static`) and pushes it to the `gh-pages` branch, which GitHub Pages serves. The
-original prototype stays at the site root and the app goes under `/app/`. `make demo` does everything
-except the push and leaves the site in `.pages-build/site` for a local look.
+Model output from earlier runs is carried forward in a small state file published with the site
+(`/_state/state.json.gz`), so each run only forecasts the new draws and takes a few minutes. If that
+file is ever lost the job recomputes everything, which takes a few hours once.
+
+To publish by hand from a machine with the app set up, run `make publish` (same script,
+`scripts/publish-pages.sh`). `make demo` builds the site into `.pages-build/site` without publishing.
+The original prototype stays at the site root; the app is under `/app/`.
 
 ## Run it
 
@@ -164,12 +171,13 @@ baked in; it has not been built or deployed from this repository yet.
 make test
 ```
 
-- `backend/tests/` (pytest, 133 tests): draw rule validation (ranges, duplicates, bonus pools, format
+- `backend/tests/` (pytest, 139 tests): draw rule validation (ranges, duplicates, bonus pools, format
   eras), feed parsers, feature engineering with a no-look-ahead check, the quantile-to-probability
   mapping, sampling, backtest arithmetic against the hypergeometric baseline, the HTTP API against a
-  real Postgres, and the demo snapshot against the live API. Four tests run the real TimesFM model; skip them with `-m "not timesfm"`.
-- `web/tests/` (node:test, 24 tests): the service worker's caching rules, the shared formatting and
-  blend logic, and the read-only demo's schedule, sampling and snapshot handling.
+  real Postgres, the hosted site's data against the live API, and the state carried between scheduled runs. Four tests run the real TimesFM model; skip them with `-m "not timesfm"`.
+- `web/tests/` (node:test, 30 tests): the service worker's caching rules, the shared formatting and
+  blend logic, and the hosted site's browser-side work: draw schedule, line sampling, saved lines and
+  their scoring.
 
 ## API
 
@@ -197,6 +205,6 @@ Live demo (browser-only, smoothing model, no TimesFM): https://laminedo.github.i
     .venv/bin/python server.py   # http://127.0.0.1:8044 (or python3 server.py for the fallback)
 
 The browser-only demo reads a saved snapshot in `public/data/`. Refresh it with
-`.venv/bin/python server.py snapshot`, commit, then run `make publish`: GitHub Pages now serves the
-`gh-pages` branch, which that command rebuilds from the current checkout. The root `Dockerfile` and the front matter
+`.venv/bin/python server.py snapshot` and commit: GitHub Pages serves the `gh-pages` branch, which the
+scheduled job (or `make publish`) rebuilds from the repository, prototype included. The root `Dockerfile` and the front matter
 at the top of this file configure the Hugging Face Space for this prototype.

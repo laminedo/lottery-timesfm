@@ -1,18 +1,20 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { mutate } from "swr";
 
 import { BallRow } from "@/components/ball";
 import { ErrorNote, LoadingBlock } from "@/components/state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useApi, type Accuracy, type DrawPage, type Game, type StoredForecast } from "@/lib/api";
 import { IS_STATIC } from "@/lib/env";
 import { formatDate, formatInt, formatJackpot } from "@/lib/format";
 import type { GameKey } from "@/lib/games";
+import { browserStore, clearSaved } from "@/lib/saved-lines";
 
 const PAGE_SIZE = 25;
 const STRATEGY_LABELS: Record<string, string> = {
@@ -28,15 +30,25 @@ function PastForecasts({ game }: { game: Game }) {
   const { data: accuracy } = useApi<Accuracy>(`/api/games/${game.key}/accuracy`);
   if (!forecasts) return <LoadingBlock className="h-32" />;
   const live = accuracy?.live;
+  // On the hosted site the lines live in this browser, so the browser can also forget them.
+  const forget = () => {
+    clearSaved(browserStore(), game.key);
+    mutate((k) => typeof k === "string" && (k.startsWith(`/api/games/${game.key}/forecasts`) || k === `/api/games/${game.key}/accuracy`));
+  };
   return (
     <Card>
       <CardHeader>
         <CardTitle>Your generated lines</CardTitle>
+        {IS_STATIC && forecasts.length > 0 && (
+          <CardAction>
+            <Button variant="ghost" size="sm" onClick={forget}>
+              <Trash2 /> Clear
+            </Button>
+          </CardAction>
+        )}
         <CardDescription>
-          {IS_STATIC
-            ? "This demo does not save generated lines. In the full app they are kept here and scored once their draw has happened."
-            : forecasts.length === 0
-            ? "Lines you generate on the Forecast tab are saved here and scored once their draw has happened."
+          {forecasts.length === 0
+            ? `Lines you generate on the Forecast tab are saved ${IS_STATIC ? "in this browser" : "here"} and scored once their draw has happened.`
             : live && live.scored_lines > 0
               ? `${live.scored_lines} scored ${live.scored_lines === 1 ? "line" : "lines"} so far averaged ${live.mean_matches?.toFixed(2)} matches; chance averages ${accuracy.expected_matches.toFixed(2)}. ${live.pending_lines} waiting for their draw.`
               : `${live?.pending_lines ?? 0} ${live?.pending_lines === 1 ? "line is" : "lines are"} waiting for the draw. Chance averages ${accuracy?.expected_matches.toFixed(2) ?? "…"} matches per line.`}

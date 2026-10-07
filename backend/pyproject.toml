@@ -18,10 +18,21 @@ dependencies = [
 
 [project.optional-dependencies]
 # Real TimesFM inference. Without it the API falls back to exponential smoothing and says so.
-timesfm = ["timesfm[torch]>=3.0.2"]
+# torch is named here as well so that the CPU-only build below applies to it on Linux.
+timesfm = ["timesfm[torch]>=3.0.2", "torch>=2.0"]
 # Self-contained Postgres for local development and tests (used when DATABASE_URL is unset).
 embedded-pg = ["pixeltable-pgserver>=0.6"]
 dev = ["pytest>=8", "ruff>=0.5"]
+
+# On Linux (servers, CI) install the CPU-only torch build: the default one bundles gigabytes of CUDA
+# libraries that are never used here. macOS keeps the regular build, which supports the Apple GPU.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]

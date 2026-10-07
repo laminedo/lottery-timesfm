@@ -1,14 +1,16 @@
 /**
- * The API, answered from the JSON snapshot in /data. Used by the read-only demo build, which has no
- * server: reads map to files written by `python -m app.cli export-static`, and the two writes the app
- * makes (generate lines, start a backtest) are served from the same snapshot in the browser.
+ * The API, answered from the JSON snapshot in /data. Used by the hosted build, which has no server:
+ * reads map to files written by `python -m app.cli export-static`, and the two writes the app makes
+ * are handled in the browser. Generated lines are sampled from the snapshot's forecast and kept in
+ * localStorage; a backtest request returns the run already computed for that size.
  */
-import type { BacktestRun, DrawPage, Forecast, Game, Generated, StrategyKey, Trends, Weights } from "./api";
+import type { Accuracy, BacktestRun, DrawPage, Forecast, Game, Generated, StrategyKey, Trends, Weights } from "./api";
 import { ApiError } from "./api-error.ts";
 import { blend, normalizeWeights } from "./blend.ts";
 import { BASE_PATH } from "./env.ts";
 import { GAMES, type GameKey } from "./games.ts";
 import { generateLines, type Random } from "./sampler.ts";
+import { browserStore, liveAccuracy, loadSaved, saveForecast, scoreSaved } from "./saved-lines.ts";
 import { isoInZone, localDate, nextDrawAt } from "./schedule.ts";
 
 async function file<T>(name: string): Promise<T> {
@@ -42,7 +44,7 @@ export interface GenerateBody {
   temperature?: number;
 }
 
-/** Sample lines from the snapshot's forecast, as the server would, without saving them anywhere. */
+/** Sample lines from the snapshot's forecast, as the server would. The caller decides whether to keep them. */
 export function generateFrom(forecast: Forecast, game: Game, body: GenerateBody, random: Random = Math.random): Generated {
   const temperature = body.temperature ?? 1;
   const strategy = body.weights ? "custom" : (body.strategy ?? "balanced");
@@ -111,10 +113,20 @@ export async function staticGet<T>(path: string): Promise<T> {
         const [forecast, game] = await Promise.all([file<Forecast>(`${key}/forecast.json`), file<Game>(`${key}/game.json`)]);
         return { ...forecast, target_draw_at: isoInZone(nextDrawAt(game), game.timezone) } as T;
       }
-      case "forecasts":
-        return [] as T; // the demo saves nothing
+      case "forecasts": {
+        const saved = loadSaved(browserStore(), key);
+        if (saved.length === 0) return [] as T;
+        const { draws } = await file<DrawPage>(`${key}/draws.json`);
+        return scoreSaved(saved, draws).slice(0, Number(query.get("limit") ?? 20)) as T;
+      }
+      case "accuracy": {
+        const accuracy = await file<Accuracy>(`${key}/accuracy.json`);
+        const saved = loadSaved(browserStore(), key);
+        if (saved.length === 0) return accuracy as T;
+        const { draws } = await file<DrawPage>(`${key}/draws.json`);
+        return { ...accuracy, live: liveAccuracy(scoreSaved(saved, draws)) } as T;
+      }
       case "metrics":
-      case "accuracy":
       case "backtests":
         return file<T>(`${key}/${section}.json`);
     }
@@ -126,7 +138,16 @@ export async function staticPost<T>(path: string, body: unknown): Promise<T> {
   const { resource, id, section, action } = route(path);
   if (resource === "games" && id && section === "forecast" && action === "generate") {
     const [forecast, game] = await Promise.all([file<Forecast>(`${id}/forecast.json`), file<Game>(`${id}/game.json`)]);
-    return generateFrom(forecast, game, body as GenerateBody) as T;
+    const generated = generateFrom(forecast, game, body as GenerateBody);
+    const saved = saveForecast(browserStore(), id, {
+      forecast_id: generated.forecast_id,
+      created_at: generated.created_at,
+      target_draw_date: generated.target_draw_at.slice(0, 10),
+      strategy: generated.strategy,
+      backend: generated.backend.name,
+      lines: generated.lines.map((l) => ({ primary_numbers: l.primary_numbers, bonus_number: l.bonus_number })),
+    });
+    return { ...generated, saved } as T;
   }
   if (resource === "games" && id && section === "backtests") {
     const runs = await file<BacktestRun[]>(`${id}/backtests.json`);
