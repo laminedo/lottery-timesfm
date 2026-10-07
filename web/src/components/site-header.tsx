@@ -1,15 +1,24 @@
 "use client";
 
-import { Cpu, CloudOff, LineChart } from "lucide-react";
+import { Archive, CloudOff, Cpu, LineChart } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApi, type Health } from "@/lib/api";
+import { IS_STATIC } from "@/lib/env";
+import { formatShortDate } from "@/lib/format";
 
 /** Which model is producing the forecasts. Never implies TimesFM is running when it is not. */
 function BackendBadge() {
-  const { data, error } = useApi<Health>("/api/health", { refreshInterval: 30_000 });
+  const { data, error } = useApi<Health>("/api/health", { refreshInterval: IS_STATIC ? 0 : 30_000 });
+  if (IS_STATIC) {
+    return (
+      <Badge variant="secondary">
+        <Archive /> Demo snapshot{data?.exported_at ? ` · ${formatShortDate(data.exported_at)}` : ""}
+      </Badge>
+    );
+  }
   if (error) {
     return (
       <Badge variant="destructive">

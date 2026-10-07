@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"tests/*.test.*\""
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"tests/*.test.*\"",
+    "build:static": "NEXT_PUBLIC_STATIC_DATA=1 next build"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

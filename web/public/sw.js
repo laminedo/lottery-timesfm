@@ -1,9 +1,12 @@
 /* Service worker: makes the app installable and keeps the last-seen data available offline.
    Bump VERSION to drop old caches after a change to the caching rules. */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC = `static-${VERSION}`;
 const PAGES = `pages-${VERSION}`;
 const DATA = `data-${VERSION}`;
+
+// Where the app is mounted: "" at a domain root, "/lottery-timesfm/app" on GitHub Pages.
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -41,14 +44,15 @@ async function networkFirst(request, cacheName, fallbackUrl) {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (request.method !== "GET" || url.origin !== self.location.origin || !url.pathname.startsWith(`${BASE}/`)) return;
+  const path = url.pathname.slice(BASE.length);
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  if (path.startsWith("/_next/static/") || path.startsWith("/icons/")) {
     event.respondWith(cacheFirst(request, STATIC)); // content-hashed, never changes
-  } else if (url.pathname.startsWith("/api/")) {
+  } else if (path.startsWith("/api/") || path.startsWith("/data/")) {
     event.respondWith(networkFirst(request, DATA)); // fresh when online, last-seen when not
   } else if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, PAGES, "/powerball"));
+    event.respondWith(networkFirst(request, PAGES, `${BASE}/powerball/`));
   } else {
     event.respondWith(networkFirst(request, PAGES));
   }

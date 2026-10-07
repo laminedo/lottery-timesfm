@@ -1,4 +1,4 @@
-import type { Component, PoolForecast, Weights } from "@/lib/api";
+import type { Component, PoolForecast, Weights } from "./api";
 
 export const COMPONENTS: Component[] = ["timesfm", "hot", "cold", "uniform"];
 export const COMPONENT_LABELS: Record<Component, string> = {

@@ -19,9 +19,10 @@ from .db import Database
 from .forecast.backends import make_backend
 from .forecast.sampler import COMPONENTS, MAX_TEMPERATURE, MIN_TEMPERATURE, STRATEGIES
 from .forecast.service import DISCLAIMER, ForecastService, NotEnoughHistory
-from .games import GAMES, Game, next_draw_at
+from .games import GAMES, Game
 from .ingest import pipeline
 from .jobs import BacktestRunner, Refresher
+from .views import draw_row, game_summary, run_row
 
 log = logging.getLogger(__name__)
 
@@ -65,50 +66,6 @@ def game_or_404(key: str) -> Game:
     return GAMES[key]
 
 
-def _draw_row(r: dict) -> dict:
-    return {
-        "draw_id": r["draw_id"],
-        "game_key": r["game_key"],
-        "draw_date": r["draw_date"].isoformat(),
-        "primary_numbers": r["primary_numbers"],
-        "bonus_number": r["bonus_number"],
-        "multiplier": r["multiplier"],
-        "jackpot_usd": r["jackpot_usd"],
-    }
-
-
-def _game_summary(s: State, game: Game) -> dict:
-    stats = s.db.fetch_one(
-        "select count(*) as n, min(draw_date) as first, max(draw_date) as last from draws "
-        "where game_key = %s and draw_date >= %s",
-        (game.key, game.main_since),
-    )
-    latest = s.db.fetch_one(
-        "select * from draws where game_key = %s order by draw_date desc limit 1", (game.key,)
-    )
-    upcoming = next_draw_at(game)
-    jackpot = s.db.fetch_one(
-        "select draw_date, jackpot_usd, cash_value_usd, source, fetched_at from jackpot_estimates "
-        "where game_key = %s and draw_date >= %s order by draw_date limit 1",
-        (game.key, upcoming.date()),
-    )
-    return {
-        **game.to_dict(),
-        "draw_count": stats["n"],
-        "first_draw_date": stats["first"].isoformat() if stats["first"] else None,
-        "latest_draw": _draw_row(latest) if latest else None,
-        "next_draw_at": upcoming.isoformat(),
-        "next_jackpot": jackpot
-        and {
-            "draw_date": jackpot["draw_date"].isoformat(),
-            "jackpot_usd": jackpot["jackpot_usd"],
-            "cash_value_usd": jackpot["cash_value_usd"],
-            "source": jackpot["source"],
-            "fetched_at": jackpot["fetched_at"].isoformat(),
-        },
-    }
-
-
 @router.get("/health")
 def health(s: State = Depends(ctx)) -> dict:
     counts = s.db.fetch_all("select game_key, count(*) as n from draws group by 1 order by 1")
@@ -126,12 +83,12 @@ def health(s: State = Depends(ctx)) -> dict:
 
 @router.get("/games")
 def list_games(s: State = Depends(ctx)) -> list[dict]:
-    return [_game_summary(s, g) for g in GAMES.values()]
+    return [game_summary(s.db, g) for g in GAMES.values()]
 
 
 @router.get("/games/{key}")
 def get_game_summary(key: str, s: State = Depends(ctx)) -> dict:
-    return _game_summary(s, game_or_404(key))
+    return game_summary(s.db, game_or_404(key))
 
 
 @router.get("/games/{key}/draws")
@@ -149,7 +106,7 @@ def list_draws(
         "select * from draws where game_key = %s and draw_date >= %s order by draw_date desc limit %s offset %s",
         (game.key, game.main_since, limit, offset),
     )
-    return {"game": game.key, "total": total, "limit": limit, "offset": offset, "draws": [_draw_row(r) for r in rows]}
+    return {"game": game.key, "total": total, "limit": limit, "offset": offset, "draws": [draw_row(r) for r in rows]}
 
 
 @router.get("/games/{key}/metrics")
@@ -208,41 +165,13 @@ class BacktestRequest(BaseModel):
     seed: int = Field(0, ge=0)
 
 
-def _run_row(r: dict, with_result: bool) -> dict:
-    out = {
-        "run_id": r["run_id"],
-        "game": r["game_key"],
-        "status": r["status"],
-        "progress": r["progress"],
-        "message": r["message"],
-        "error": r["error"],
-        "params": r["params"],
-        "created_at": r["created_at"].isoformat(),
-        "finished_at": r["finished_at"].isoformat() if r["finished_at"] else None,
-    }
-    if with_result:
-        out["result"] = r["result"]
-    elif r["result"]:
-        out["summary"] = {
-            "draws": r["result"]["draws"],
-            "from": r["result"]["from"],
-            "to": r["result"]["to"],
-            "expected_matches": r["result"]["baseline"]["expected_matches"],
-            "strategies": [
-                {"key": x["key"], "label": x["label"], "mean_matches": x["top_pick"]["mean_matches"], "p_value": x["top_pick"]["p_value"]}
-                for x in r["result"]["strategies"]
-            ],
-        }
-    return out
-
-
 @router.post("/games/{key}/backtests", status_code=202)
 def start_backtest(key: str, body: BacktestRequest, s: State = Depends(ctx)) -> dict:
     game = game_or_404(key)
     if not body.strategies:
         raise HTTPException(422, "Choose at least one strategy")
     run_id = s.backtests.submit(game, body.model_dump())
-    return _run_row(s.db.fetch_one("select * from backtest_runs where run_id = %s", (run_id,)), with_result=False)
+    return run_row(s.db.fetch_one("select * from backtest_runs where run_id = %s", (run_id,)), with_result=False)
 
 
 @router.get("/games/{key}/backtests")
@@ -251,7 +180,7 @@ def list_backtests(key: str, limit: int = Query(10, ge=1, le=50), s: State = Dep
     rows = s.db.fetch_all(
         "select * from backtest_runs where game_key = %s order by created_at desc limit %s", (game.key, limit)
     )
-    return [_run_row(r, with_result=False) for r in rows]
+    return [run_row(r, with_result=False) for r in rows]
 
 
 @router.get("/backtests/{run_id}")
@@ -259,7 +188,7 @@ def get_backtest(run_id: int, s: State = Depends(ctx)) -> dict:
     row = s.db.fetch_one("select * from backtest_runs where run_id = %s", (run_id,))
     if not row:
         raise HTTPException(404, f"No backtest run {run_id}")
-    return _run_row(row, with_result=True)
+    return run_row(row, with_result=True)
 
 
 @router.post("/refresh")

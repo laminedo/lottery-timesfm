@@ -2,7 +2,12 @@
 
 import useSWR, { type SWRConfiguration } from "swr";
 
+import { ApiError } from "./api-error";
+import { IS_STATIC } from "./env";
 import type { GameKey } from "./games";
+import { staticGet, staticPost } from "./static-api";
+
+export { ApiError };
 
 /* ---- response shapes (see backend/app/main.py) ---- */
 
@@ -58,6 +63,9 @@ export interface Health {
   backend: BackendInfo;
   draws: Record<string, number>;
   last_refresh: string | null;
+  /** Present in the read-only demo: when its snapshot was taken. */
+  static?: boolean;
+  exported_at?: string;
 }
 
 export interface NumberForecast {
@@ -134,6 +142,8 @@ export interface Generated {
   weights: Weights;
   temperature: number;
   seed: number;
+  /** False in the read-only demo, where lines are sampled in the browser and not stored. */
+  saved?: boolean;
   target_draw_at: string;
   lines: GeneratedLine[];
   jackpot_odds: number;
@@ -317,15 +327,6 @@ export interface DrawPage {
 
 /* ---- transport ---- */
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message);
-  }
-}
-
 async function parse<T>(response: Response): Promise<T> {
   if (response.ok) return response.json() as Promise<T>;
   let detail = `Request failed (${response.status})`;
@@ -340,10 +341,12 @@ async function parse<T>(response: Response): Promise<T> {
 }
 
 export async function getJson<T>(path: string): Promise<T> {
+  if (IS_STATIC) return staticGet<T>(path);
   return parse<T>(await fetch(path, { headers: { Accept: "application/json" } }));
 }
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  if (IS_STATIC) return staticPost<T>(path, body);
   return parse<T>(
     await fetch(path, {
       method: "POST",

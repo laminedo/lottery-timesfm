@@ -46,6 +46,22 @@ class NotEnoughHistory(ValueError):
     pass
 
 
+def backtest_digest(run_id: int, finished_at: str, result: dict) -> dict:
+    """The few numbers of a backtest result that the accuracy tracker shows."""
+    return {
+        "run_id": run_id,
+        "finished_at": finished_at,
+        "draws": result["draws"],
+        "from": result["from"],
+        "to": result["to"],
+        "strategies": [
+            {"key": s["key"], "label": s["label"], "mean_matches": s["top_pick"]["mean_matches"],
+             "p_value": s["top_pick"]["p_value"], "consistent_with_chance": s["top_pick"]["consistent_with_chance"]}
+            for s in result["strategies"]
+        ],
+    }
+
+
 class ForecastService:
     def __init__(self, db: Database, backend: ForecastBackend, settings: Settings):
         self.db = db
@@ -331,19 +347,7 @@ class ForecastService:
         )
         backtest = None
         if latest:
-            r = latest["result"]
-            backtest = {
-                "run_id": latest["run_id"],
-                "finished_at": latest["finished_at"].isoformat(),
-                "draws": r["draws"],
-                "from": r["from"],
-                "to": r["to"],
-                "strategies": [
-                    {"key": s["key"], "label": s["label"], "mean_matches": s["top_pick"]["mean_matches"],
-                     "p_value": s["top_pick"]["p_value"], "consistent_with_chance": s["top_pick"]["consistent_with_chance"]}
-                    for s in r["strategies"]
-                ],
-            }
+            backtest = backtest_digest(latest["run_id"], latest["finished_at"].isoformat(), latest["result"])
         return {
             "game": game.key,
             "expected_matches": mu,

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useApi, type Accuracy, type DrawPage, type Game, type StoredForecast } from "@/lib/api";
+import { IS_STATIC } from "@/lib/env";
 import { formatDate, formatInt, formatJackpot } from "@/lib/format";
 import type { GameKey } from "@/lib/games";
 
@@ -32,7 +33,9 @@ function PastForecasts({ game }: { game: Game }) {
       <CardHeader>
         <CardTitle>Your generated lines</CardTitle>
         <CardDescription>
-          {forecasts.length === 0
+          {IS_STATIC
+            ? "This demo does not save generated lines. In the full app they are kept here and scored once their draw has happened."
+            : forecasts.length === 0
             ? "Lines you generate on the Forecast tab are saved here and scored once their draw has happened."
             : live && live.scored_lines > 0
               ? `${live.scored_lines} scored ${live.scored_lines === 1 ? "line" : "lines"} so far averaged ${live.mean_matches?.toFixed(2)} matches; chance averages ${accuracy.expected_matches.toFixed(2)}. ${live.pending_lines} waiting for their draw.`

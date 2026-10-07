@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { blend, normalizeWeights, toPresence } from "../src/components/forecast/blend.ts";
+import { blend, normalizeWeights, toPresence } from "../src/lib/blend.ts";
 import { countdownParts, dateTickFormatter, formatDate, formatJackpot, formatP } from "../src/lib/format.ts";
 import { niceTicks } from "../src/lib/scale.ts";
 

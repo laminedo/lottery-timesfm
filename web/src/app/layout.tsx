@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 
+import { DemoNotice } from "@/components/demo-notice";
 import { ServiceWorker } from "@/components/service-worker";
 import { Disclaimer, SiteFooter } from "@/components/site-chrome";
 import { SiteHeader } from "@/components/site-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { BASE_PATH } from "@/lib/env";
 
 import "./globals.css";
 
@@ -12,6 +14,7 @@ export const metadata: Metadata = {
   description:
     "Statistical pattern analysis and experimental TimesFM time-series forecasts for Powerball, Mega Millions, Hit 5 and Lotto. For analysis and entertainment only.",
   applicationName: "Lottery Forecast Lab",
+  manifest: `${BASE_PATH}/manifest.webmanifest`,
   appleWebApp: { capable: true, title: "Forecast Lab", statusBarStyle: "default" },
 };
 
@@ -31,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <TooltipProvider>
           <SiteHeader />
           <Disclaimer />
+          <DemoNotice />
           <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-4 sm:px-6">{children}</main>
           <SiteFooter />
         </TooltipProvider>

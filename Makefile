@@ -4,7 +4,7 @@ NODE_BIN := $(CURDIR)/.tools/node/bin
 export PATH := $(NODE_BIN):$(PATH)
 export NEXT_TELEMETRY_DISABLED := 1
 
-.PHONY: help install api web build start test seed refresh snapshot warm
+.PHONY: help install api web build start test seed refresh snapshot warm publish demo
 
 help:
 	@echo "make install   install backend and web dependencies"
@@ -15,6 +15,8 @@ help:
 	@echo "make refresh   pull new draws from the official sources now"
 	@echo "make snapshot  rebuild backend/data/seed from the official sources"
 	@echo "make warm      precompute model output for the last 100 draws of every game"
+	@echo "make demo      build the read-only demo site into .pages-build/site without publishing"
+	@echo "make publish   export a fresh snapshot, build the demo and publish it to GitHub Pages"
 
 install:
 	cd backend && uv sync --all-extras
@@ -38,3 +40,9 @@ test:
 
 seed refresh snapshot warm:
 	cd backend && uv run --all-extras python -m app.cli $@
+
+demo:
+	scripts/publish-pages.sh --no-push
+
+publish:
+	scripts/publish-pages.sh

@@ -28,6 +28,7 @@ import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { postJson, useApi, type BacktestResult, type BacktestRun, type Game, type StrategyKey } from "@/lib/api";
+import { IS_STATIC } from "@/lib/env";
 import { dateTickFormatter, formatDate, formatP, formatPercent } from "@/lib/format";
 import type { GameKey } from "@/lib/games";
 import { niceTicks } from "@/lib/scale";
@@ -493,8 +494,10 @@ export function BacktestView({ game: key }: { game: GameKey }) {
           <CardTitle>Walk-forward backtest</CardTitle>
           <CardDescription>
             Replays the most recent draws one at a time. Before each draw, every strategy forecasts it from earlier draws only, and its
-            pick is scored against what was drawn. The first run forecasts each draw with the model (about 1–2 seconds per draw);
-            results are cached, so reruns are instant.
+            pick is scored against what was drawn.{" "}
+            {IS_STATIC
+              ? "This demo replays forecasts that were computed with the model in advance, so results appear at once."
+              : "The first run forecasts each draw with the model (about 1–2 seconds per draw); results are cached, so reruns are instant."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">

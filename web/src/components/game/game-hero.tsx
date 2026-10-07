@@ -7,6 +7,7 @@ import { BallRow } from "@/components/ball";
 import { ErrorNote } from "@/components/state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi, type Accuracy, type Game } from "@/lib/api";
+import { IS_STATIC } from "@/lib/env";
 import { countdownParts, formatDate, formatInt, formatJackpot, formatP } from "@/lib/format";
 import type { GameKey } from "@/lib/games";
 
@@ -119,7 +120,9 @@ export function GameHero({ game: key }: { game: GameKey }) {
           note={
             jackpot
               ? `${jackpot.cash_value_usd ? `Cash value ${formatJackpot(jackpot.cash_value_usd)} · ` : ""}${jackpot.source}`
-              : "The lottery has not published an estimate we could read."
+              : IS_STATIC
+                ? "The demo snapshot has no estimate for this draw."
+                : "The lottery has not published an estimate we could read."
           }
         >
           {jackpot ? formatJackpot(jackpot.jackpot_usd) : <span className="text-muted-foreground">Not available</span>}

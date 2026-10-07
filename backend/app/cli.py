@@ -6,6 +6,7 @@
   refresh [--full]     pull new draws (or all draws) from the official sources
   warm [--draws N]     precompute model output for the last N draws of every game
   backtest GAME        run a walk-forward backtest and print the summary
+  export-static DIR    write the JSON snapshot the static demo (GitHub Pages) is built from
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ import argparse
 import json
 import logging
 import sys
+from pathlib import Path
 
 from .config import get_settings
 from .db import Database
@@ -35,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     bt.add_argument("--draws", type=int, default=100)
     bt.add_argument("--samples", type=int, default=20)
     bt.add_argument("--seed", type=int, default=0)
+    sub.add_parser("export-static").add_argument("out_dir", type=Path)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -64,7 +67,12 @@ def main(argv: list[str] | None = None) -> int:
         else:
             pipeline.seed_if_empty(db, settings.seed_dir)
             service = ForecastService(db, make_backend(settings), settings)
-            if args.command == "warm":
+            if args.command == "export-static":
+                from .export import export_static
+
+                summary = export_static(db, service, args.out_dir)
+                print(f"Wrote {summary['files']} files to {summary['out_dir']} (draws up to {summary['latest_draws']})")
+            elif args.command == "warm":
                 for game in GAMES.values():
                     service.backtest(game, draws=args.draws, samples=0, progress=lambda f, m: print(f"\r{game.key}: {m}   ", end=""))
                     gf = service.features(game)

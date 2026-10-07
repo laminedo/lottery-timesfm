@@ -7,7 +7,7 @@ import vm from "node:vm";
 const ORIGIN = "http://app.test";
 const source = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
 
-function boot() {
+function boot(base = "") {
   const stores = new Map(); // cache name -> Map(url -> body)
   const listeners = {};
   const network = { online: true, calls: [], status: 200 };
@@ -26,6 +26,7 @@ function boot() {
     URL,
     self: {
       location: { origin: ORIGIN },
+      registration: { scope: `${ORIGIN}${base}/` },
       addEventListener: (type, fn) => (listeners[type] = fn),
       skipWaiting: () => {},
       clients: { claim: async () => {} },
@@ -67,11 +68,11 @@ test("hashed static assets are served from cache without touching the network ag
 
 test("an offline navigation falls back to the cached copy, then to the cached home screen", async () => {
   const sw = boot();
-  await sw.get("/powerball", { mode: "navigate" });
+  await sw.get("/powerball/", { mode: "navigate" });
   await sw.get("/wa-hit5/trends", { mode: "navigate" });
   sw.network.online = false;
   assert.equal((await sw.get("/wa-hit5/trends", { mode: "navigate" })).body, `net:${ORIGIN}/wa-hit5/trends`);
-  assert.equal((await sw.get("/megamillions", { mode: "navigate" })).body, `net:${ORIGIN}/powerball`);
+  assert.equal((await sw.get("/megamillions/", { mode: "navigate" })).body, `net:${ORIGIN}/powerball/`);
 });
 
 test("writes and other origins are left to the browser", () => {
@@ -96,5 +97,20 @@ test("activation removes caches from older versions", async () => {
   let done;
   sw.listeners.activate({ waitUntil: (p) => (done = p) });
   await done;
-  assert.deepEqual([...sw.stores.keys()], ["data-v1"]);
+  assert.deepEqual([...sw.stores.keys()], ["data-v2"]);
+});
+
+test("under a sub-path it handles its own files and leaves the rest of the site alone", async () => {
+  const sw = boot("/lottery-timesfm/app");
+  // The demo's snapshot data is cached like API responses.
+  await sw.get("/lottery-timesfm/app/data/powerball/forecast.json");
+  await sw.get("/lottery-timesfm/app/powerball/", { mode: "navigate" });
+  await sw.get("/lottery-timesfm/app/_next/static/chunks/app.js");
+  // The prototype demo lives beside the app on the same origin and must not be intercepted.
+  assert.equal(sw.get("/lottery-timesfm/public/data/powerball.json"), undefined);
+  assert.equal(sw.get("/lottery-timesfm/", { mode: "navigate" }), undefined);
+  sw.network.online = false;
+  assert.equal((await sw.get("/lottery-timesfm/app/data/powerball/forecast.json")).fromCache, true);
+  assert.equal((await sw.get("/lottery-timesfm/app/wa-lotto/", { mode: "navigate" })).body, `net:${ORIGIN}/lottery-timesfm/app/powerball/`);
+  assert.equal((await sw.get("/lottery-timesfm/app/_next/static/chunks/app.js")).fromCache, true);
 });

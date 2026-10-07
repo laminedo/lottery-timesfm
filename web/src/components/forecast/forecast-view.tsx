@@ -25,7 +25,7 @@ import {
 import { formatDate, formatInt } from "@/lib/format";
 import type { GameKey } from "@/lib/games";
 
-import { blend, COMPONENT_LABELS, COMPONENTS, MAX_TEMPERATURE, MIN_TEMPERATURE, normalizeWeights, toPresence } from "./blend";
+import { blend, COMPONENT_LABELS, COMPONENTS, MAX_TEMPERATURE, MIN_TEMPERATURE, normalizeWeights, toPresence } from "@/lib/blend";
 import { Heatmap, HeatmapTable } from "./heatmap";
 import { PositionChart, PositionTable } from "./position-chart";
 
@@ -253,10 +253,14 @@ export function ForecastView({ game: key }: { game: GameKey }) {
             </ul>
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Check className="mt-0.5 size-3.5 shrink-0" />
-              <span>
-                Saved for the {formatDate(result.target_draw_at.slice(0, 10), false)} draw and scored against the result afterwards.
-                See <Link className="underline underline-offset-2" href={`/${key}/history`}>History</Link>. Seed {result.seed}.
-              </span>
+              {result.saved === false ? (
+                <span>Sampled in your browser for the {formatDate(result.target_draw_at.slice(0, 10), false)} draw. This demo does not save lines.</span>
+              ) : (
+                <span>
+                  Saved for the {formatDate(result.target_draw_at.slice(0, 10), false)} draw and scored against the result afterwards.
+                  See <Link className="underline underline-offset-2" href={`/${key}/history`}>History</Link>. Seed {result.seed}.
+                </span>
+              )}
             </p>
           </section>
         )}
