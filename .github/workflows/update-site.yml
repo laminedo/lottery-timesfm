@@ -1,1 +1,73 @@
-0246-CFC6
+name: Update site
+
+# Keeps the hosted app current without a server. On a schedule this job fetches new draws, runs
+# TimesFM for anything not yet forecast, recomputes the backtests, rebuilds the web app as static
+# files and publishes them to GitHub Pages. See scripts/publish-pages.sh for the steps.
+
+on:
+  schedule:
+    # US draws are in the evening; results reach the feeds over the following hours.
+    - cron: "40 4 * * *"   # 9:40 pm Pacific: Hit 5 and Lotto results
+    - cron: "40 7 * * *"   # 12:40 am Pacific: Powerball and Mega Millions
+    - cron: "40 15 * * *"  # 8:40 am Pacific: anything the feeds posted overnight
+  workflow_dispatch:
+  push:
+    branches: [main, full-stack-app]
+    paths:
+      - "backend/**"
+      - "web/**"
+      - "scripts/**"
+      - "public/**"
+      - "index.html"
+      - ".github/workflows/update-site.yml"
+
+permissions:
+  contents: write # push the built site to the gh-pages branch
+  pages: write # ask Pages to rebuild
+
+concurrency:
+  group: update-site
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Minutes when model output is carried over from the last run; hours if it all has to be recomputed.
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Cache TimesFM weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: timesfm-2.5-200m-pytorch
+
+      - name: Install dependencies
+        run: |
+          (cd backend && uv sync --all-extras)
+          (cd web && npm ci)
+
+      - name: Rebuild and publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          scripts/publish-pages.sh
+
+      - name: Ask GitHub Pages to rebuild
+        # Pages normally rebuilds on its own when gh-pages changes; this covers the case where it does not.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds"
