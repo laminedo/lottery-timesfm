@@ -2,3 +2,7 @@
 .git/
 __pycache__/
 *.log
+# The root Dockerfile builds the single-file prototype; the full-stack app has its own images.
+backend/
+web/
+.tools/
