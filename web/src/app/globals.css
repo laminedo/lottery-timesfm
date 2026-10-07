@@ -1,0 +1,141 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-sans);
+  --color-ink-muted: var(--ink-muted);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-context: var(--context);
+  --color-success: var(--success-text);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Surfaces, ink and chart colors. Light values first; the dark block restates them for a dark surface.
+   Chart colors come from a validated palette: series hues for identity, gray for "what chance
+   predicts", and a blue/red pair around a neutral midpoint for below/above the chance baseline. */
+:root {
+  color-scheme: light;
+  --background: #f9f9f7;
+  --foreground: #0b0b0b;
+  --card: #fcfcfb;
+  --card-foreground: #0b0b0b;
+  --popover: #fcfcfb;
+  --popover-foreground: #0b0b0b;
+  --primary: #256abf;
+  --primary-foreground: #ffffff;
+  --secondary: #efeeea;
+  --secondary-foreground: #0b0b0b;
+  --muted: #efeeea;
+  --muted-foreground: #52514e;
+  --accent: #efeeea;
+  --accent-foreground: #0b0b0b;
+  --destructive: #d03b3b;
+  --border: rgba(11, 11, 11, 0.1);
+  --input: rgba(11, 11, 11, 0.16);
+  --ring: #6da7ec;
+  --radius: 0.625rem;
+
+  --ink-muted: #898781;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #c3c2b7;
+  --series-1: #2a78d6;
+  --series-1-wash: rgba(42, 120, 214, 0.1);
+  --series-2: #eb6834;
+  --context: #b5b3ab;
+  --diverge-low: #2a78d6;
+  --diverge-high: #e34948;
+  --diverge-mid: #f0efec;
+  --cell-ink-weak: #0b0b0b;
+  --cell-ink-strong: #0b0b0b;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+  --success-text: #006300;
+  --ball: #ffffff;
+  --ball-powerball: #e34948;
+  --ball-megaball: #eda100;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #0d0d0d;
+    --foreground: #ffffff;
+    --card: #1a1a19;
+    --card-foreground: #ffffff;
+    --popover: #1a1a19;
+    --popover-foreground: #ffffff;
+    --primary: #3987e5;
+    --primary-foreground: #0b0b0b;
+    --secondary: #2c2c2a;
+    --secondary-foreground: #ffffff;
+    --muted: #2c2c2a;
+    --muted-foreground: #c3c2b7;
+    --accent: #2c2c2a;
+    --accent-foreground: #ffffff;
+    --destructive: #e66767;
+    --border: rgba(255, 255, 255, 0.1);
+    --input: rgba(255, 255, 255, 0.16);
+    --ring: #256abf;
+
+    --ink-muted: #898781;
+    --chart-grid: #2c2c2a;
+    --chart-axis: #383835;
+    --series-1: #3987e5;
+    --series-1-wash: rgba(57, 135, 229, 0.14);
+    --series-2: #d95926;
+    --context: #6b6a65;
+    --diverge-low: #3987e5;
+    --diverge-high: #e66767;
+    --diverge-mid: #383835;
+    --cell-ink-weak: #ffffff;
+    --cell-ink-strong: #0b0b0b;
+    --success-text: #0ca30c;
+    --ball: #2c2c2a;
+    --ball-powerball: #e66767;
+    --ball-megaball: #c98500;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
+}
