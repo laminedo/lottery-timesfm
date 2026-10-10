@@ -1,0 +1,36 @@
+2:"$Sreact.fragment"
+3:"$Sreact.suspense"
+4:"/lottery-timesfm/app/_next/static/chunks/26de6hfgad5-p.js"
+5:"/lottery-timesfm/app/_next/static/chunks/2t4ersev8klyp.js"
+6:"/lottery-timesfm/app/_next/static/chunks/1tvlc7jyjzeyl.js"
+7:"/lottery-timesfm/app/_next/static/chunks/0ez14ccqc6_o9.js"
+8:"/lottery-timesfm/app/_next/static/chunks/1krg90gvezh6j.js"
+9:I[28263,["$4","$5","$6","$7","$8"],"GameTabs"]
+a:I[45840,["$4","$5","$6","$7","$8"],"GameHero"]
+b:I[28263,["$4","$5","$6","$7","$8"],"SectionNav"]
+c:I[39756,["$4","$5","$6","$7"],"default"]
+d:I[37457,["$4","$5","$6","$7"],"default"]
+14:"/lottery-timesfm/app/_next/static/chunks/3ttm2uhwzxx9a.js"
+15:I[57745,["$4","$5","$6","$7","$8","$14"],"HistoryView"]
+16:I[97367,["$4","$5","$6","$7"],"OutletBoundary"]
+19:"ViewportBoundary"
+1a:I[97367,["$4","$5","$6","$7"],"$19"]
+1b:"MetadataBoundary"
+1c:I[97367,["$4","$5","$6","$7"],"$1b"]
+1d:I[27201,["$4","$5","$6","$7"],"IconMark"]
+f:X
+12:X
+12:C
+13:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$2","c",{"children":[["$","$3",null,{"fallback":["$","div",null,{"data-slot":"skeleton","className":"animate-pulse rounded-md bg-muted w-full h-96"}],"children":[["$","$L15","powerball",{"game":"powerball"}]]}],[["$","script","script-0",{"src":"/lottery-timesfm/app/_next/static/chunks/3ttm2uhwzxx9a.js","async":true}]],["$","$L16",null,{"children":["$","$3",null,{"name":"Next.MetadataOutlet","children":"$@17"}]}]]}],"p":"$@18","v":null,"s":"$f"}}]]
+10:[["children",{"s":"history","h":96,"d":{"r":["$","$2","c",{"children":[null,["$","$Lc",null,{"parallelRouterKey":"children","template":["$","$Ld",null,{}]}]]}],"p":"$@11","v":"$12","s":"$f"},"c":"$Q13"}]]
+1:[["children",{"s":{"n":"game","t":"d","k":"powerball","s":[]},"h":64,"d":{"r":["$","$2","c",{"children":[[["$","script","script-0",{"src":"/lottery-timesfm/app/_next/static/chunks/1krg90gvezh6j.js","async":true}]],[["$","$3",null,{"fallback":["$","div",null,{"data-slot":"skeleton","className":"animate-pulse rounded-md bg-muted w-full h-72"}],"children":[["$","$L9",null,{"game":"powerball"}],["$","$La",null,{"game":"powerball"}],["$","$Lb",null,{"game":"powerball"}]]}],["$","$Lc",null,{"parallelRouterKey":"children","template":["$","$Ld",null,{}]}]]]}],"p":"$@e","v":null,"s":"$f"},"c":"$Q10"}]]
+0:{"t":{"t":{"s":"","h":16,"c":"$Q1"},"h":{"r":["$","$2","h",{"children":[null,["$","$L1a",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","2",{"name":"theme-color","content":"#f9f9f7","media":"(prefers-color-scheme: light)"}],["$","meta","3",{"name":"theme-color","content":"#0d0d0d","media":"(prefers-color-scheme: dark)"}]]}],["$","$L1c",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$3",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Powerball history · Lottery Forecast Lab"}],["$","meta","1",{"name":"description","content":"Statistical pattern analysis and experimental TimesFM time-series forecasts for Powerball, Mega Millions, Hit 5 and Lotto. For analysis and entertainment only."}],["$","meta","2",{"name":"application-name","content":"Lottery Forecast Lab"}],["$","link","3",{"rel":"manifest","href":"/lottery-timesfm/app/manifest.webmanifest"}],["$","meta","4",{"name":"mobile-web-app-capable","content":"yes"}],["$","meta","5",{"name":"apple-mobile-web-app-title","content":"Forecast Lab"}],["$","meta","6",{"name":"apple-mobile-web-app-status-bar-style","content":"default"}],["$","link","7",{"rel":"icon","href":"/lottery-timesfm/app/favicon.ico?favicon.38226m6lqhi3y.ico","sizes":"64x64","type":"image/x-icon"}],["$","link","8",{"rel":"icon","href":"/lottery-timesfm/app/icon.png?icon.2-jvzagsio4g7.png","sizes":"64x64","type":"image/png"}],["$","link","9",{"rel":"apple-touch-icon","href":"/lottery-timesfm/app/apple-icon.png?apple-icon.04uuenqlycbn0.png","sizes":"180x180","type":"image/png"}],["$","$L1d","10",{}]]}]}],null]}],null]}],"p":"$@1e","v":null,"s":"$f"}},"a":"$@1f","u":"$@20","b":"U1JN5vzfSxF7Ibmv3858t"}
+17:null
+20:true
+f:300
+f:C
+1f:0
+11:"$undefined"
+e:"$undefined"
+1e:"$undefined"
+18:"$undefined"

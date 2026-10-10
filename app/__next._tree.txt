@@ -1,0 +1,3 @@
+:HL["/lottery-timesfm/app/_next/static/chunks/0gd_5pykwk7mh.css","style"]
+1:[["children",{"s":"__PAGE__","h":128}]]
+0:{"b":"U1JN5vzfSxF7Ibmv3858t","t":{"t":{"s":"","h":16,"c":"$Q1"}}}

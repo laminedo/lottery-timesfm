@@ -1,0 +1,29 @@
+2:"$Sreact.fragment"
+3:"/lottery-timesfm/app/_next/static/chunks/26de6hfgad5-p.js"
+4:"/lottery-timesfm/app/_next/static/chunks/2t4ersev8klyp.js"
+5:"/lottery-timesfm/app/_next/static/chunks/1tvlc7jyjzeyl.js"
+6:"/lottery-timesfm/app/_next/static/chunks/0ez14ccqc6_o9.js"
+7:I[39756,["$3","$4","$5","$6"],"default"]
+8:I[37457,["$3","$4","$5","$6"],"default"]
+d:I[22016,["$3","$4","$5","$6"],""]
+e:I[97367,["$3","$4","$5","$6"],"OutletBoundary"]
+f:"$Sreact.suspense"
+12:"ViewportBoundary"
+13:I[97367,["$3","$4","$5","$6"],"$12"]
+14:"MetadataBoundary"
+15:I[97367,["$3","$4","$5","$6"],"$14"]
+16:I[27201,["$3","$4","$5","$6"],"IconMark"]
+a:X
+a:C
+b:X
+c:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$2","c",{"children":[["$","div",null,{"className":"flex flex-col items-start gap-3 py-12","children":[["$","h1",null,{"className":"text-xl font-semibold","children":"Page not found"}],["$","p",null,{"className":"text-muted-foreground","children":"That game or page does not exist. Pick a game:"}],["$","ul",null,{"className":"flex flex-wrap gap-3","children":[["$","li","powerball",{"children":["$","$Ld",null,{"className":"text-primary underline-offset-4 hover:underline","href":"/powerball","children":"Powerball"}]}],["$","li","megamillions",{"children":["$","$Ld",null,{"className":"text-primary underline-offset-4 hover:underline","href":"/megamillions","children":"Mega Millions"}]}],["$","li","wa-hit5",{"children":["$","$Ld",null,{"className":"text-primary underline-offset-4 hover:underline","href":"/wa-hit5","children":"Hit 5"}]}],["$","li","wa-lotto",{"children":["$","$Ld",null,{"className":"text-primary underline-offset-4 hover:underline","href":"/wa-lotto","children":"Lotto"}]}]]}]]}],null,["$","$Le",null,{"children":["$","$f",null,{"name":"Next.MetadataOutlet","children":"$@10"}]}]]}],"p":"$@11","v":null,"s":"$b"}}]]
+1:[["children",{"s":"/_not-found","h":64,"d":{"r":["$","$2","c",{"children":[null,["$","$L7",null,{"parallelRouterKey":"children","template":["$","$L8",null,{}]}]]}],"p":"$@9","v":"$a","s":"$b"},"c":"$Qc"}]]
+0:{"t":{"t":{"s":"","h":16,"c":"$Q1"},"h":{"r":["$","$2","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L13",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","2",{"name":"theme-color","content":"#f9f9f7","media":"(prefers-color-scheme: light)"}],["$","meta","3",{"name":"theme-color","content":"#0d0d0d","media":"(prefers-color-scheme: dark)"}]]}],["$","$L15",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$f",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Lottery Forecast Lab"}],["$","meta","1",{"name":"description","content":"Statistical pattern analysis and experimental TimesFM time-series forecasts for Powerball, Mega Millions, Hit 5 and Lotto. For analysis and entertainment only."}],["$","meta","2",{"name":"application-name","content":"Lottery Forecast Lab"}],["$","link","3",{"rel":"manifest","href":"/lottery-timesfm/app/manifest.webmanifest"}],["$","meta","4",{"name":"mobile-web-app-capable","content":"yes"}],["$","meta","5",{"name":"apple-mobile-web-app-title","content":"Forecast Lab"}],["$","meta","6",{"name":"apple-mobile-web-app-status-bar-style","content":"default"}],["$","link","7",{"rel":"icon","href":"/lottery-timesfm/app/favicon.ico?favicon.38226m6lqhi3y.ico","sizes":"64x64","type":"image/x-icon"}],["$","link","8",{"rel":"icon","href":"/lottery-timesfm/app/icon.png?icon.2-jvzagsio4g7.png","sizes":"64x64","type":"image/png"}],["$","link","9",{"rel":"apple-touch-icon","href":"/lottery-timesfm/app/apple-icon.png?apple-icon.04uuenqlycbn0.png","sizes":"180x180","type":"image/png"}],["$","$L16","10",{}]]}]}],null]}],null]}],"p":"$@17","v":null,"s":"$b"}},"a":"$@18","u":"$@19","b":"U1JN5vzfSxF7Ibmv3858t"}
+10:null
+19:true
+b:300
+b:C
+18:0
+9:"$undefined"
+17:"$undefined"
+11:"$undefined"

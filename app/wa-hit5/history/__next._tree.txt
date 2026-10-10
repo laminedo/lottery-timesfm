@@ -1,0 +1,5 @@
+:HL["/lottery-timesfm/app/_next/static/chunks/0gd_5pykwk7mh.css","style"]
+3:[["children",{"s":"__PAGE__","h":160}]]
+2:[["children",{"s":"history","h":96,"c":"$Q3"}]]
+1:[["children",{"s":{"n":"game","t":"d","k":"wa-hit5","s":[]},"h":64,"c":"$Q2"}]]
+0:{"b":"U1JN5vzfSxF7Ibmv3858t","t":{"t":{"s":"","h":16,"c":"$Q1"}}}
