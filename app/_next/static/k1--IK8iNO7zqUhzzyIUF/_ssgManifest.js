@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002F[game]","\u002F[game]\u002Fbacktest","\u002F[game]\u002Fhistory","\u002F[game]\u002Ftrends"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
